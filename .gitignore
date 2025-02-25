@@ -1,0 +1,13 @@
+__pycache__
+*coverage*
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.vscode
+*egg*
+build
+dist
+docs
+junit
+todo
+**/_version.py
