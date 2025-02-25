@@ -1,0 +1,23 @@
+[
+    {
+        "id": 1,
+        "name": "TOTO",
+        "email": "user1@example.com",
+        "age": 17,
+        "address": "Address 1"
+    },
+    {
+        "id": 2,
+        "name": "XXX",
+        "email": "user2@example.com",
+        "age": 22,
+        "address": "Address 2"
+    },
+    {
+        "id": 10000,
+        "name": "User10000",
+        "email": "user10000@example.com",
+        "age": 50,
+        "address": "Address 10000"
+    }
+]
