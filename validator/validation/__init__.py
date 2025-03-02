@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import total_ordering
 from types import MappingProxyType
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar, final
 
 from validator import logger
 from validator.adapter import Adapter, AdapterNotFoundError, adapt
@@ -22,6 +22,7 @@ class Mode(Enum):
 
 
 @dataclass(frozen=True)
+@final
 class ValidatorResult(ABC):
     """Immutable class for validation results.
 
@@ -195,6 +196,10 @@ class Validator(Generic[T], metaclass=MetaAB):
 
     _rules: ClassVar[dict[str, list[Callable[..., ValidatorResult | None]]]]
 
+    @property
+    def rules(self) -> dict:
+        return self.__class__._rules
+
     @abstractmethod
     def validate(self, obj: T) -> ValidatorResult | None:
         """Validate an object.
@@ -208,7 +213,7 @@ class Validator(Generic[T], metaclass=MetaAB):
 
     def accept(
         self, rules: list[str] | None, mode: Mode = Mode.AND, *args: list, **kwargs: dict
-    ) -> bool:
+    ) -> ValidatorResult:
         """Accept and apply validation rules.
 
         Args:
@@ -238,15 +243,15 @@ class Validator(Generic[T], metaclass=MetaAB):
                 if result.level >= ValidatorResult.Level.ERROR:
                     logger.error(result)
                     if mode is Mode.AND:
-                        return False
+                        return result
                 if result.level > ValidatorResult.Level.OK:
                     logger.warning(result)
                 if mode == mode.OR and result:
-                    break
+                    return result
         except Exception as err:
             raise ValidatorError(_rule, func) from err
         else:
-            return True
+            return ok()
 
     def apply(
         self,
@@ -270,9 +275,64 @@ class Validator(Generic[T], metaclass=MetaAB):
         """
         return validate(rules=rules, mode=mode)(callback)(self, *args, **kwargs)
 
-    @property
-    def rules(self) -> dict:
-        return self.__class__._rules
+
+@final
+class validate:  # noqa: N801
+    rules: list[str] | None
+    mode: Mode
+
+    def __init__(self, rules: list[str] | None = None, mode: Mode = Mode.AND) -> None:
+        self.rules = rules
+        self.mode = mode
+
+    @staticmethod
+    def register(rules: list[str]) -> Callable:
+        """Decorator to register validation rules.
+
+        Args:
+            rules: List of validation rules.
+
+        Returns:
+            A decorator to register the function as a validation rule.
+        """
+
+        def decorateur(func: Callable) -> Callable:
+            func.rules = rules  # type:ignore[attr-defined]
+            return func
+
+        return decorateur
+
+    def __call__(self, function: Callable) -> Callable:
+        """Decorator to apply validation rules.
+
+        Args:
+            rules: List of validation rules.
+            validator: Function to get the validator instance.
+
+        Returns:
+            A decorator to apply the validation rules.
+        """
+
+        @functools.wraps(function)
+        def decorateur(obj: Validator | Adapter, *args: list, **kwargs: dict) -> object | None:
+            """Inner function to apply the validation rules.
+
+            Args:
+                *args: Positional arguments.
+                **kwargs: Keyword arguments.
+
+            Returns:
+                The result of the decorated function or None if validation failed.
+            """
+            validator = adapt(obj=obj, adapter=Validator)  # type:ignore[type-abstract]
+            if not validator:
+                raise AdapterNotFoundError(adapter=Validator)
+
+            if validator.accept(self.rules, self.mode, *args, _self=obj, **kwargs):  # type:ignore[arg-type]
+                return function(obj, *args, **kwargs)
+            return None
+
+        return decorateur
 
 
 def register(rules: list[str]) -> Callable:
@@ -285,47 +345,7 @@ def register(rules: list[str]) -> Callable:
         A decorator to register the function as a validation rule.
     """
 
-    def decorateur(func: Callable) -> Callable:
-        func.rules = rules  # type:ignore[attr-defined]
-        return func
-
-    return decorateur
-
-
-def validate(rules: list[str] | None = None, mode: Mode = Mode.AND) -> Callable:
-    """Decorator to apply validation rules.
-
-    Args:
-        rules: List of validation rules.
-        validator: Function to get the validator instance.
-
-    Returns:
-        A decorator to apply the validation rules.
-    """
-
-    def decorateur(function: Callable) -> Callable:
-        @functools.wraps(function)
-        def inner(self: Validator | Adapter, *args: list, **kwargs: dict) -> object | None:
-            """Inner function to apply the validation rules.
-
-            Args:
-                *args: Positional arguments.
-                **kwargs: Keyword arguments.
-
-            Returns:
-                The result of the decorated function or None if validation failed.
-            """
-            validator = adapt(obj=self, adapter=Validator)  # type:ignore[type-abstract]
-            if not validator:
-                raise AdapterNotFoundError(adapter=Validator)
-
-            if validator.accept(rules, mode, *args, data=self, **kwargs):  # type:ignore[arg-type]
-                return function(self, *args, **kwargs)
-            return None
-
-        return inner
-
-    return decorateur
+    return validate.register(rules)
 
 
 class ValidatorChain(ABC):
@@ -363,7 +383,7 @@ class ValidatorChain(ABC):
         """
         return _InnerValidatorChain(parent=self, callback=callback, message=message)
 
-    def validate(self, *args: list) -> ValidatorResult:  # noqa: ARG002
+    def validate(self, *args) -> ValidatorResult:  # noqa: ANN002, ARG002
         """Validate the data using the chain of validators.
 
         Args:
@@ -384,7 +404,7 @@ class _InnerValidatorChain(ValidatorChain):
         super().__init__(callback=callback, message=message)
         self._parent = parent
 
-    def validate(self, *args: list) -> ValidatorResult:
+    def validate(self, *args) -> ValidatorResult:  # noqa: ANN002
         """Validate the data using the chain of validators.
 
         Args:

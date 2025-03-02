@@ -25,6 +25,7 @@ class User(BaseModel):
     email: str
     age: int | None = None
     address: str | None = None
+    # state: ObservableProperty = Field(default_factory=ObservableProperty, init=False)
 
     @field_validator("email")
     def validate_email(cls, v: str) -> str:  # noqa: N805

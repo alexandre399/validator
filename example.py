@@ -46,14 +46,14 @@ for user in lazy_load_users(file_path=file_path):
         print(err)
 
 
-user = User(id=5, name="TOTO", email="test@example.com", age="19")
+user = User(id=5, name="TOTO", email="test@example.com", age=19)
 
 try:
     user_service.validator.validate(user)
 except Exception as err:
     print(err)
 
-print(user_service.bidon(User(id=5, name="XXX", email="test@example.com", age="19")))
+print(user_service.bidon(User(id=5, name="XXX", email="test@example.com", age=19)))
 
 try:
     user_service.validator.rules["R001"][0](user_service, user)
@@ -66,7 +66,7 @@ except Exception as err:
     print(err)
 
 
-validator_chain = ValidatorChain(lambda data: bool(data))(lambda data: data > 0)(
+validator_chain = ValidatorChain(lambda data: bool(data), "not bool")(lambda data: data > 0, "value<0")(
         lambda data: data < 10, "error: value>10")
 
 print(validator_chain.validate(15))
