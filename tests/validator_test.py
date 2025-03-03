@@ -3,7 +3,7 @@ import pytest
 from validator.validation import (
     Mode,
     Validator,
-    ValidatorChain,
+    ValidatorChainBuilder,
     ValidatorError,
     ValidatorResult,
     register,
@@ -84,16 +84,18 @@ def test_inner_exception_handling():
 
 
 def test_validator_chain():
+    assert ValidatorChainBuilder(lambda data: bool(data)).build()(5)
+
     # Create a chain of validators
-    validator_chain = ValidatorChain(lambda data: bool(data))(lambda data: data > 0)(
-        lambda data: data < 10
-    )
+    validator_chain = ValidatorChainBuilder(lambda data: bool(data), "valule not bool")(
+        lambda data: data > 0, "value <= 0"
+    )(lambda data: data < 10, "value >= 10").build()
 
     # Test cases
-    assert validator_chain.validate(5)  # Passes all validations
-    assert not validator_chain.validate(0)  # Fails is_not_empty and is_positive
-    assert not validator_chain.validate(15)  # Fails is_less_than_ten
-    assert not validator_chain.validate(-5)  # Fails is_positive
+    assert validator_chain(5)  # Passes all validations
+    assert not validator_chain(0)  # Fails is_not_empty and is_positive
+    assert not validator_chain(15)  # Fails is_less_than_ten
+    assert not validator_chain(-5)  # Fails is_positive
 
 
 def mock_callback(*args, **kwargs):

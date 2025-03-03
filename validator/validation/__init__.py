@@ -349,30 +349,14 @@ def register(rules: list[str]) -> Callable:
 
 
 class ValidatorChain(ABC):
-    """Abstract base class for creating a chain of validators.
-
-    Attributes:
-        _parent: The parent validator in the chain.
-        _callback: The callback function to perform validation.
-    """
+    """Abstract base class for creating a chain of validators."""
 
     _parent: "ValidatorChain"
-    _callback: Callable[..., bool]
-    _message: str | None
 
-    def __init__(self, callback: Callable[..., bool], message: str | None = None) -> None:
-        """Initialize the ValidatorChain with a callback function.
+    def __init__(self, parent: "ValidatorChain") -> None:
+        self._parent = parent
 
-        Args:
-            callback: The callback function to perform validation.
-            message: The message to display if validation fails.
-        """
-        self._callback = callback
-        self._message = message
-
-    def __call__(
-        self, callback: Callable[..., bool], message: str | None = None
-    ) -> "ValidatorChain":
+    def __call__(self, *args: list) -> ValidatorResult:
         """Add a new validator to the chain.
 
         Args:
@@ -381,39 +365,71 @@ class ValidatorChain(ABC):
         Returns:
             A new ValidatorChain instance with the provided callback.
         """
-        return _InnerValidatorChain(parent=self, callback=callback, message=message)
+        return self._parent(*args)
 
-    def validate(self, *args) -> ValidatorResult:  # noqa: ANN002, ARG002
-        """Validate the data using the chain of validators.
+
+class ValidatorChainBuilder:
+    """Builder class for creating a ValidatorChain."""
+
+    _chain: ValidatorChain
+
+    class _InnerValidatorChain(ValidatorChain):
+        """Inner class to represent a validator chain.
+
+        Attributes:
+            _parent: The parent validator in the chain.
+        """
+
+        _callback: Callable[..., bool]
+        _message: str | None
+
+        def __init__(
+            self,
+            parent: ValidatorChain,
+            callback: Callable[..., bool],
+            message: str | None = None,
+        ) -> None:
+            super().__init__(parent)
+            self._callback = callback
+            self._message = message
+
+        def __call__(self, *args: list) -> ValidatorResult:
+            """Validate the data using the chain of validators.
+
+            Args:
+                *args: The arguments to pass to the callback functions.
+
+            Returns:
+                bool: True if all validations pass, otherwise False.
+            """
+            result: ValidatorResult = ok() if self._parent is None else self._parent(*args)
+            if not result:
+                return result
+
+            return ok() if self._callback(*args) else error(message=self._message or "")
+
+    def __init__(self, callback: Callable[..., bool], message: str | None = None) -> None:
+        self._chain = ValidatorChainBuilder._InnerValidatorChain(None, callback, message)  # type:ignore[arg-type]
+
+    def __call__(
+        self, callback: Callable[..., bool], message: str | None = None
+    ) -> "ValidatorChainBuilder":
+        """Add a validator to the chain.
 
         Args:
-            *args: The arguments to pass to the callback functions.
+            validator: The validator function to add.
+            message: The message to display if validation fails.
 
         Returns:
-            bool: True if all validations pass, otherwise False.
+            ValidatorChainBuilder: The builder instance.
         """
-        return ok()
+        self._chain = ValidatorChainBuilder._InnerValidatorChain(self._chain, callback, message)
+        return self
 
-
-class _InnerValidatorChain(ValidatorChain):
-    """Inner class to represent a validator chain."""
-
-    def __init__(
-        self, parent: "ValidatorChain", callback: Callable[..., bool], message: str | None = None
-    ) -> None:
-        super().__init__(callback=callback, message=message)
-        self._parent = parent
-
-    def validate(self, *args) -> ValidatorResult:  # noqa: ANN002
-        """Validate the data using the chain of validators.
-
-        Args:
-            *args: The arguments to pass to the callback functions.
+    def build(self) -> ValidatorChain:
+        """Build the ValidatorChain.
 
         Returns:
-            bool: True if all validations pass, otherwise False.
+            ValidatorChain: The constructed ValidatorChain.
         """
-        result = self._parent.validate(*args)
-        if result:
-            result = ok() if self._callback(*args) else error(message=self._message or "")
-        return result
+        return ValidatorChain(self._chain)
