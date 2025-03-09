@@ -1,6 +1,6 @@
 import pytest
 
-from validator.validation import (
+from starterkit.validator import (
     Mode,
     Validator,
     ValidatorChainBuilder,
@@ -39,7 +39,7 @@ def test_inner_success():
     assert result == "success"
 
 
-def test_inner_validation_failure():
+def test_inner_validator_failure():
     mock_validator = MockValidator()
 
     @validate(["error"])
@@ -92,7 +92,7 @@ def test_validator_chain():
     )(lambda data: data < 10, "value >= 10").build()
 
     # Test cases
-    assert validator_chain(5)  # Passes all validations
+    assert validator_chain(5)  # Passes all validators
     assert not validator_chain(0)  # Fails is_not_empty and is_positive
     assert not validator_chain(15)  # Fails is_less_than_ten
     assert not validator_chain(-5)  # Fails is_positive
@@ -121,7 +121,7 @@ def test_apply_multiple_rules_or_mode():
     assert result == "callback result"
 
 
-def test_apply_validation_failure():
+def test_apply_validator_failure():
     validator = MockValidator()
     result = validator.apply(rules=["error"], callback=mock_callback)
     assert result is None

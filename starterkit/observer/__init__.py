@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Generic, TypeVar
 
-from validator.adapter import Adapter, adapt
+from starterkit.adapter import Adapter, adapt
 
 T = TypeVar("T")
 
@@ -35,7 +35,6 @@ class Observer(ABC):
             observable: The observable instance.
             event: The event that occurred.
         """
-        pass
 
 
 class Observable(ABC):

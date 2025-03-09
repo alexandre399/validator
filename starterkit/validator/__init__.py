@@ -9,8 +9,8 @@ from functools import total_ordering
 from types import MappingProxyType
 from typing import Any, ClassVar, Generic, TypeVar, final
 
-from validator import logger
-from validator.adapter import Adapter, AdapterNotFoundError, adapt
+from starterkit import logger
+from starterkit.adapter import Adapter, AdapterNotFoundError, adapt
 
 T = TypeVar("T")
 R = TypeVar("R")
@@ -24,13 +24,13 @@ class Mode(Enum):
 @dataclass(frozen=True)
 @final
 class ValidatorResult(ABC):
-    """Immutable class for validation results.
+    """Immutable class for validator results.
 
     Attributes:
         rule: The rule that was validated.
-        level: The level of the validation.
-        message: An optional message for validation level.
-        stacktrace: An optional stack trace for the validation.
+        level: The level of the validator.
+        message: An optional message for validator level.
+        stacktrace: An optional stack trace for the validator.
         kwargs: Additional keyword arguments.
     """
 
@@ -75,7 +75,7 @@ class ValidatorResult(ABC):
     kwargs: dict[str, Any] = field(default_factory=dict, kw_only=True)
 
     def __new__(cls, *args: list, **kwargs: dict) -> "ValidatorResult":  # noqa:ARG003
-        """Ensure ValidationResult cannot be instantiated directly.
+        """Ensure ValidatorResult cannot be instantiated directly.
 
         Args:
             cls: The class itself.
@@ -83,7 +83,7 @@ class ValidatorResult(ABC):
             **kwargs: Keyword arguments.
 
         Raises:
-            TypeError: If an attempt is made to instantiate ValidationResult directly.
+            TypeError: If an attempt is made to instantiate ValidatorResult directly.
         """
         if cls is ValidatorResult:
             msg = f"Cannot instantiate abstract class {cls.__name__} directly"
@@ -91,58 +91,58 @@ class ValidatorResult(ABC):
         return super().__new__(cls)
 
     def __bool__(self) -> bool:
-        """Check if the ValidationResult instance is valid.
+        """Check if the ValidatorResult instance is valid.
 
         Returns:
-            bool: True if the ValidationResult instance is valid, False otherwise.
+            bool: True if the ValidatorResult instance is valid, False otherwise.
         """
         return self.level < ValidatorResult.Level.ERROR
 
     @classmethod
     def ok(cls, **kwargs: object) -> "ValidatorResult":
-        """Create a successful validation result.
+        """Create a successful validator result.
 
         Args:
             kwargs: Additional keyword arguments.
 
         Returns:
-            A ValidationResult instance indicating success.
+            A ValidatorResult instance indicating success.
         """
         return type("", (cls,), {})(level=ValidatorResult.Level.OK, kwargs=kwargs)
 
     @classmethod
     def warning(cls, message: str | None = None, **kwargs: object) -> "ValidatorResult":
-        """Create a warning validation result.
+        """Create a warning validator result.
 
         Args:
             message: The warning message.
             kwargs: Additional keyword arguments.
 
         Returns:
-            A ValidationResult instance indicating failure.
+            A ValidatorResult instance indicating failure.
         """
-        validation_result = type("", (cls,), {})(
+        validator_result = type("", (cls,), {})(
             level=ValidatorResult.Level.WARNING, message=message, kwargs=kwargs
         )
-        object.__setattr__(validation_result, "stacktrace", traceback.extract_stack())
-        return validation_result
+        object.__setattr__(validator_result, "stacktrace", traceback.extract_stack())
+        return validator_result
 
     @classmethod
     def error(cls, message: str, **kwargs: object) -> "ValidatorResult":
-        """Create a failed validation result.
+        """Create a failed validator result.
 
         Args:
             message: The failure message.
             kwargs: Additional keyword arguments.
 
         Returns:
-            A ValidationResult instance indicating failure.
+            A ValidatorResult instance indicating failure.
         """
-        validation_result = type("", (cls,), {})(
+        validator_result = type("", (cls,), {})(
             level=ValidatorResult.Level.ERROR, message=message, kwargs=kwargs
         )
-        object.__setattr__(validation_result, "stacktrace", traceback.extract_stack())
-        return validation_result
+        object.__setattr__(validator_result, "stacktrace", traceback.extract_stack())
+        return validator_result
 
 
 ok = ValidatorResult.ok
@@ -152,11 +152,11 @@ error = ValidatorResult.error
 
 @dataclass(frozen=True)
 class ValidatorError(Exception):
-    """Exception raised for validation errors.
+    """Exception raised for validator errors.
 
     Attributes:
         rule: The rule that failed.
-        func: The function where the validation failed.
+        func: The function where the validator failed.
     """
 
     rule: str
@@ -208,25 +208,25 @@ class Validator(Generic[T], metaclass=MetaAB):
             obj: The object to validate.
 
         Returns:
-            A ValidationResult instance or None if validation passed.
+            A ValidatorResult instance or None if validator passed.
         """
 
     def accept(
         self, rules: list[str] | None, mode: Mode = Mode.AND, *args: list, **kwargs: dict
     ) -> ValidatorResult:
-        """Accept and apply validation rules.
+        """Accept and apply validator rules.
 
         Args:
             rules: A list of rule names to apply. If None, all rules are applied.
             mode: The mode to apply the rules (AND/OR).
-            *args: Positional arguments to pass to the validation functions.
-            **kwargs: Keyword arguments to pass to the validation functions.
+            *args: Positional arguments to pass to the validator functions.
+            **kwargs: Keyword arguments to pass to the validator functions.
 
         Returns:
-            bool: True if validation passes, False otherwise.
+            bool: True if validator passes, False otherwise.
 
         Raises:
-            ValidatorError: If an exception occurs during validation.
+            ValidatorError: If an exception occurs during validator.
         """
         selected: dict[str, list[Callable[..., ValidatorResult | None]]] = (
             self.rules
@@ -261,17 +261,17 @@ class Validator(Generic[T], metaclass=MetaAB):
         *args: list,
         **kwargs: dict,
     ) -> R | None:
-        """Apply a validation rule.
+        """Apply a validator rule.
 
         Args:
-            rules: The validation rules to apply.
-            callback: The validation rule to apply.
+            rules: The validator rules to apply.
+            callback: The validator rule to apply.
             mode: The mode to apply the rules.
             *args: Positional arguments to pass to the rule
             **kwargs: Keyword arguments to pass to the rule
 
         Returns:
-            The result of the callback function or None if validation failed.
+            The result of the callback function or None if validator failed.
         """
         return validate(rules=rules, mode=mode)(callback)(self, *args, **kwargs)
 
@@ -287,13 +287,13 @@ class validate:  # noqa: N801
 
     @staticmethod
     def register(rules: list[str]) -> Callable:
-        """Decorator to register validation rules.
+        """Decorator to register validator rules.
 
         Args:
-            rules: List of validation rules.
+            rules: List of validator rules.
 
         Returns:
-            A decorator to register the function as a validation rule.
+            A decorator to register the function as a validator rule.
         """
 
         def decorateur(func: Callable) -> Callable:
@@ -303,26 +303,26 @@ class validate:  # noqa: N801
         return decorateur
 
     def __call__(self, function: Callable) -> Callable:
-        """Decorator to apply validation rules.
+        """Decorator to apply validator rules.
 
         Args:
-            rules: List of validation rules.
+            rules: List of validator rules.
             validator: Function to get the validator instance.
 
         Returns:
-            A decorator to apply the validation rules.
+            A decorator to apply the validator rules.
         """
 
         @functools.wraps(function)
         def decorateur(obj: Validator | Adapter, *args: list, **kwargs: dict) -> object | None:
-            """Inner function to apply the validation rules.
+            """Inner function to apply the validator rules.
 
             Args:
                 *args: Positional arguments.
                 **kwargs: Keyword arguments.
 
             Returns:
-                The result of the decorated function or None if validation failed.
+                The result of the decorated function or None if validator failed.
             """
             validator = adapt(obj=obj, adapter=Validator)  # type:ignore[type-abstract]
             if not validator:
@@ -336,13 +336,13 @@ class validate:  # noqa: N801
 
 
 def register(rules: list[str]) -> Callable:
-    """Decorator to register validation rules.
+    """Decorator to register validator rules.
 
     Args:
-        rules: List of validation rules.
+        rules: List of validator rules.
 
     Returns:
-        A decorator to register the function as a validation rule.
+        A decorator to register the function as a validator rule.
     """
 
     return validate.register(rules)
@@ -400,7 +400,7 @@ class ValidatorChainBuilder:
                 *args: The arguments to pass to the callback functions.
 
             Returns:
-                bool: True if all validations pass, otherwise False.
+                bool: True if all validators pass, otherwise False.
             """
             result: ValidatorResult = ok() if self._parent is None else self._parent(*args)
             if not result:
@@ -418,7 +418,7 @@ class ValidatorChainBuilder:
 
         Args:
             validator: The validator function to add.
-            message: The message to display if validation fails.
+            message: The message to display if validator fails.
 
         Returns:
             ValidatorChainBuilder: The builder instance.

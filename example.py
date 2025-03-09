@@ -5,10 +5,10 @@ import ijson
 from dependency_injector import containers, providers
 from pydantic import ValidationError
 
-from validator.dto.user import User
-from validator.service.user import UserService
-from validator.validation.user import UserValidator
-from validator.validation import validate, ValidatorChain
+from starterkit.dto.user import User
+from starterkit.service.user import UserService
+from starterkit.validator.user import UserValidator
+from starterkit.validator import validate, ValidatorChain, ValidatorChainBuilder
 
 
 # Définir la classe de conteneur pour IoC
@@ -66,7 +66,7 @@ except Exception as err:
     print(err)
 
 
-validator_chain = ValidatorChain(lambda data: bool(data), "not bool")(lambda data: data > 0, "value<0")(
-        lambda data: data < 10, "error: value>10")
+validator_chain = ValidatorChainBuilder(lambda data: bool(data), "not bool")(lambda data: data > 0, "value<0")(
+        lambda data: data < 10, "error: value>10").build()
 
-print(validator_chain.validate(15))
+print(validator_chain(15))

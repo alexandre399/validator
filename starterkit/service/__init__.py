@@ -1,8 +1,8 @@
 from abc import ABC
 from typing import Generic, TypeVar
 
-from validator.adapter import Adapter
-from validator.validation import Validator
+from starterkit.adapter import Adapter
+from starterkit.validator import Validator
 
 T = TypeVar("T")
 R = TypeVar("R")

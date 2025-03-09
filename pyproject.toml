@@ -13,24 +13,24 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
 ]
 dependencies = []
-description = "Example of an Implementation of the Validator Object for Python"
+description = "Starterkit project"
 dynamic = ["version"]
-keywords = ["validator"]
+keywords = ["starterkit"]
 license = {file = "LICENSE"}
 maintainers = [{name = "alexandre399", email = "alexandre399.pypi@gmail.com"}]
-name = "validator"
+name = "starterkit"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"
 
 [project.urls]
-Changelog = "https://github.com/alexandre399/validator/blob/main/CHANGELOG.md"
-Documentation = "https://github.com/alexandre399/validator/blob/main/README.md"
-Homepage = "https://github.com/alexandre399/validator/tree/main"
-Issues = "https://github.com/alexandre399/validator/issues"
-Repository = "https://github.com/alexandre399/validator.git"
+Changelog = "https://github.com/alexandre399/starterkit/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/alexandre399/starterkit/blob/main/README.md"
+Homepage = "https://github.com/alexandre399/starterkit/tree/main"
+Issues = "https://github.com/alexandre399/starterkit/issues"
+Repository = "https://github.com/alexandre399/starterkit.git"
 
 [tool.setuptools_scm]
-version_file = "validator/_version.py"
+version_file = "starterkit/_version.py"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -146,5 +146,5 @@ fail_under = 75
 branch = true
 omit = ["**/_version.py", "**/user.py"]
 source = [
-  "validator",
+  "starterkit",
 ]

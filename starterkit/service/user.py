@@ -1,5 +1,5 @@
-from validator.dto.user import User
-from validator.validation import validate
+from starterkit.dto.user import User
+from starterkit.validator import validate
 
 from . import Service
 
@@ -13,7 +13,7 @@ class UserService(Service[User]):
 
     @validate(["R002"])
     def bidon(self, user: User) -> None:
-        """Additional validation rules for adding a User.
+        """Additional validator rules for adding a User.
 
         Args:
             user: The User object to validate.
@@ -21,7 +21,7 @@ class UserService(Service[User]):
 
     @validate()
     def append(self, user: User, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
-        """Additional validation rules for adding a User.
+        """Additional validator rules for adding a User.
 
         Args:
             user: The User object to validate.

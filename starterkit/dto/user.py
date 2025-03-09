@@ -10,7 +10,7 @@ class UserError(Exception):
 
 
 class User(BaseModel):
-    """Schema for User with custom validation.
+    """Schema for User with custom validator.
 
     Attributes:
         id: The unique identifier for the user.

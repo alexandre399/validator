@@ -1,6 +1,6 @@
 import pytest
 
-from validator.observer import EventType, Observable, ObservableList, Observer, observable
+from starterkit.observer import EventType, Observable, ObservableList, Observer, observable
 
 
 class TestObserver(Observer):
